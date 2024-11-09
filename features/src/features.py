@@ -1,112 +1,70 @@
-{
- "cells": [
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "id": "525d9071-ade4-4104-acae-9a0e3202f92a",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "import time\n",
-    "import pika\n",
-    "import json\n",
-    "import numpy as np\n",
-    "from sklearn.datasets import load_diabetes\n",
-    "from datetime import datetime  # Импортируем datetime для генерации timestamp\n",
-    "\n",
-    "np.random.seed(42)\n",
-    "\n",
-    "# Пишем функции\n",
-    "\n",
-    "def load_data():\n",
-    "    return load_diabetes(return_X_y=True)\n",
-    "\n",
-    "def generate_message(X, y):\n",
-    "    # Формируем случайный индекс строки\n",
-    "    random_row = np.random.randint(0, X.shape[0] - 1)\n",
-    "    # Генерируем уникальный идентификатор на основе текущего времени в формате timestamp\n",
-    "    message_id = datetime.timestamp(datetime.now())\n",
-    "    # Выводим сообщение с уникальным идентификатором, вектором признаков и ответом\n",
-    "    message_y_true = {\"ID\": message_id, \"body\": json.dumps(y[random_row])}\n",
-    "    message_features = {\"ID\": message_id, \"body\": json.dumps(list(X[random_row]))}\n",
-    "\n",
-    "    return message_id, message_y_true, message_features\n",
-    "\n",
-    "\n",
-    "def publish_messages(channel, message_id, message_y_true, message_features):\n",
-    "    # Публикуем сообщение в очередь y_true\n",
-    "    channel.basic_publish(\n",
-    "        exchange=\"\", routing_key=\"y_true\", body=message_y_true\n",
-    "    )\n",
-    "    print(f\"Сообщение с правильным ответом отправлено в очередь (id: {message_id})\")\n",
-    "\n",
-    "    # Публикуем сообщение в очередь features\n",
-    "    channel.basic_publish(\n",
-    "        exchange=\"\", routing_key=\"features\", body=message_features\n",
-    "    )\n",
-    "    print(f\"Сообщение с вектором признаков отправлено в очередь (id: {message_id})\")\n",
-    "\n",
-    "def send_features_and_responses():\n",
-    "    # Загружаем датасет о диабете\n",
-    "    X, y = load_data()\n",
-    "    \n",
-    "    while True:\n",
-    "        try:\n",
-    "        # Подключение к серверу на локальном хосте\n",
-    "        connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq'))\n",
-    "        channel = connection.channel()\n",
-    "\n",
-    "        # Создаём очередь y_true\n",
-    "        channel.queue_declare(queue='y_true')\n",
-    "        # Создаём очередь features\n",
-    "        channel.queue_declare(queue='features')\n",
-    "        \n",
-    "        # Генерируем сообщения\n",
-    "        message_id, message_y_true, message_features = generate_message(X, y)\n",
-    "\n",
-    "        # Публикуем сообщения\n",
-    "        publish_messages(channel, message_id, message_y_true, message_features)\n",
-    "\n",
-    "        # Закрываем подключение\n",
-    "        connection.close()\n",
-    "\n",
-    "        # Добавляем задержку в 10 секунд\n",
-    "        time.sleep(10)\n",
-    "        except:\n",
-    "        print('Не удалось подключиться к очереди')\n",
-    "\n",
-    "if __name__ == '__main__':\n",
-    "    send_features_and_responses()  # Запуск функции"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "id": "d5f5e89d-a830-4796-aa35-e675f72fc3c1",
-   "metadata": {},
-   "outputs": [],
-   "source": []
-  }
- ],
- "metadata": {
-  "kernelspec": {
-   "display_name": "Python 3 (ipykernel)",
-   "language": "python",
-   "name": "python3"
-  },
-  "language_info": {
-   "codemirror_mode": {
-    "name": "ipython",
-    "version": 3
-   },
-   "file_extension": ".py",
-   "mimetype": "text/x-python",
-   "name": "python",
-   "nbconvert_exporter": "python",
-   "pygments_lexer": "ipython3",
-   "version": "3.11.4"
-  }
- },
- "nbformat": 4,
- "nbformat_minor": 5
-}
+import time
+import pika
+import json
+import numpy as np
+from sklearn.datasets import load_diabetes
+from datetime import datetime  # Импортируем datetime для генерации timestamp
+
+np.random.seed(42)
+
+# Пишем функции
+
+def load_data():
+    return load_diabetes(return_X_y=True)
+
+def generate_message(X, y):
+    # Формируем случайный индекс строки
+    random_row = np.random.randint(0, X.shape[0] - 1)
+    # Генерируем уникальный идентификатор на основе текущего времени в формате timestamp
+    message_id = datetime.timestamp(datetime.now())
+    # Выводим сообщение с уникальным идентификатором, вектором признаков и ответом
+    message_y_true = {"ID": message_id, "body": json.dumps(y[random_row])}
+    message_features = {"ID": message_id, "body": json.dumps(list(X[random_row]))}
+
+    return message_id, message_y_true, message_features
+
+
+def publish_messages(channel, message_id, message_y_true, message_features):
+    # Публикуем сообщение в очередь y_true
+    channel.basic_publish(
+        exchange="", routing_key="y_true", body=message_y_true
+    )
+    print(f"Сообщение с правильным ответом отправлено в очередь (id: {message_id})")
+
+    # Публикуем сообщение в очередь features
+    channel.basic_publish(
+        exchange="", routing_key="features", body=message_features
+    )
+    print(f"Сообщение с вектором признаков отправлено в очередь (id: {message_id})")
+
+def send_features_and_responses():
+    # Загружаем датасет о диабете
+    X, y = load_data()
+    
+    while True:
+        try:
+        # Подключение к серверу на локальном хосте
+        connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq'))
+        channel = connection.channel()
+
+        # Создаём очередь y_true
+        channel.queue_declare(queue='y_true')
+        # Создаём очередь features
+        channel.queue_declare(queue='features')
+        
+        # Генерируем сообщения
+        message_id, message_y_true, message_features = generate_message(X, y)
+
+        # Публикуем сообщения
+        publish_messages(channel, message_id, message_y_true, message_features)
+
+        # Закрываем подключение
+        connection.close()
+
+        # Добавляем задержку в 10 секунд
+        time.sleep(10)
+        except:
+        print('Не удалось подключиться к очереди')
+
+if __name__ == '__main__':
+    send_features_and_responses()  # Запуск функции
